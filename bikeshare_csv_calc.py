@@ -79,10 +79,10 @@ def main():
             dirname =os.path.dirname(sys.argv[0])
             new_dir=dirname+"\\"+station+"\\"
             csv = new_dir+station+".csv"
+            print "-"*75
             if os.path.isfile(csv) is False:
                 csv=createBikeCSV(station)
             else:
-                print "-"*75
                 print "File '"+station+".csv' found in:\n " +new_dir+"\n"
             for hour in interval:
                 ReadBikeCount(csv, float(hour))
