@@ -8,19 +8,19 @@ class bikeshare:
     def __init__(self,name="Unnamed",Docks=0):
         self.bikeSum, self.lastbike,self.OpenDocks,self.undocked, \
                 self.docked, self.empty, self.full, self.bikeAvg, \
-                self.counter = (0,)*9
+                self.minutes = (0,)*9
         self.DockSize=Docks
         self.name=name
 
     def updateCounter(self, bikes=0):
-        self.counter +=1
+        self.minutes +=1
         self.bikeSum += float(bikes)
         self.OpenDocks=self.DockSize-bikes
 
         bike_change = bikes- self.lastbike
-        if self.lastbike > bikes:
+        if bike_change < 0:
             self.undocked +=bike_change
-        elif self.lastbike< bikes:
+        elif bike_change > 0:
             self.docked +=bike_change
         
         if bikes<=3:
@@ -28,7 +28,7 @@ class bikeshare:
         elif bikes >= self.DockSize-1:
             self.full +=1
             
-        self.bikeAvg=float(self.bikeSum/self.counter)
+        self.bikeAvg=float(self.bikeSum/self.minutes)
        
         self.lastbike = bikes
         return self.bikeAvg
@@ -51,8 +51,8 @@ class bikeshare:
         return self.empty
     def minFull(self):
         return self.full
-    def getCounter (self):
-        return self.counter
+    def getMinutes (self):
+        return self.minutes
     
     def resetCounter(self):
         self.bikeSum=0
@@ -62,7 +62,7 @@ class bikeshare:
         self.empty=0
         self.full=0
         self.bikeAvg=0
-        self.counter=0
+        self.minutes=0
         self.OpenDocks=0
         
     def getStats(self):
@@ -72,16 +72,21 @@ class bikeshare:
 def main():
     arg=sys.argv
 
-    interval=[1,8,12,24]
+    interval=[.5,1,3,8,12,24,72,168]
     if len(arg)==1:
-        station="Cleveland-Pl-&-Spring-St"   ##### Station names at bottom of document
-        dirname =os.path.dirname(sys.argv[0])
-        csv = dirname+"\\"+station+"\\"+station+".csv"
-        if os.path.isfile(csv) is False:
-            csv=createBikeCSV(station)
-        for hour in interval:
-            ReadBikeCount(csv, float(hour))
-        
+        station_list=["Broadway-&-E-14-St"]   ##### Station names at bottom of document
+        for station in station_list:
+            dirname =os.path.dirname(sys.argv[0])
+            new_dir=dirname+"\\"+station+"\\"
+            csv = new_dir+station+".csv"
+            if os.path.isfile(csv) is False:
+                csv=createBikeCSV(station)
+            else:
+                print "-"*75
+                print "File '"+station+".csv' found in:\n " +new_dir+"\n"
+            for hour in interval:
+                ReadBikeCount(csv, float(hour))
+            print "\n" +str(len(interval))+" files now available in:\n "+new_dir+"\n" 
     elif len(arg)>1:
         try:
             print arg, len(arg)
@@ -92,12 +97,15 @@ def main():
 
         except:
             print "Error in argument %n." %(arg[1])
+            
+    x=raw_input ("\n"+ str(len(interval)*len(station_list))+\
+                 " files created.\nProgram Completed.\nPress <ENTER> to exit>>")
 
      
 def createBikeCSV(station):
     
     startDate, startTime = "20130615","0:00"
-    endDate, endTime = "20130716","0:00"
+    endDate, endTime = "20130726","0:00"
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
     
     dirname =os.path.dirname(sys.argv[0])
@@ -109,7 +117,7 @@ def createBikeCSV(station):
     print "Downloading ", station+".csv... \nThis may take a few minutes."
     urllib.urlretrieve (url, CSVfile)
     #downloadFile(url, CSVfile)
-    print "Done downloading!"
+    print "Done downloading!\n"
     return CSVfile
     
 def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
@@ -125,7 +133,10 @@ def downloadFile(url,file_name):
     u = urllib2.urlopen(url)
     f = open(file_name, 'wb')
     meta = u.info()
-    file_size = int(meta.getheaders("Content-Length")[0])
+    try:
+        file_size = int(meta.getheaders("Content-Length")[0])
+    except:
+        file_size=-1
     print "Downloading: %s Bytes: %s" % (file_name, file_size)
 
     file_size_dl = 0
@@ -177,7 +188,7 @@ def ReadBikeCount(csv, hours):
     bikecsv=openFileAsReadLines(csv)
 
     DockSize=FindDockSize(bikecsv)
-    bikeStation=bikeshare(csv.replace(".csv",""), DockSize)
+    bikeStation=bikeshare(csv.split("\\")[-1].replace(".csv",""), DockSize)
 
 ##    dirname,filename = os.path.split(os.path.abspath(csv))
 ##    directory = dirname+"\\"+filename.replace(".csv","")+"\\"
@@ -192,18 +203,19 @@ def ReadBikeCount(csv, hours):
 
     time_interval=hours*60 #time interval in minutes
     time_count, timestart=0,None
+    print "Station: "+bikeStation.getName()+"   Time Interval: "+str(hours)+" hours...",
     for i in bikecsv:
         record=i.split(",")
         timeend=record[1]
-        name=record[0].replace(".available_bikes","")
-        bikeStation.setName(name)
+        #name=record[0].replace(".available_bikes","")
+        #bikeStation.setName(name)
                             
         try:
             bikes= float(record[2])
         except:
             None
           
-        if bikeStation.getCounter()+1==time_interval:
+        if bikeStation.getMinutes()+1==time_interval:
             bikeStation.updateCounter(bikes)
             name, bikeavg, undocked, docked, empty, full = bikeStation.getStats()
             output = name+","+str(timestart)+","+str(timeend)+","+str(bikeavg)\
@@ -218,7 +230,7 @@ def ReadBikeCount(csv, hours):
             bikeStation.updateCounter(bikes)
 
     outfile.close()
-    print "Station: "+name+"   Time Interval: "+str(hours)+" hours... completed!"
+    print " completed!"
     if len(sys.argv) >1:
         i=input("Press enter to exit...")
 
@@ -570,4 +582,3 @@ main()
 ##Wythe-Ave-&-Metropolitan-Ave
 ##York-St-&-Jay-St
 ##DeKalb-Ave-&-S-Portland-Ave
-
