@@ -56,7 +56,6 @@ class bikeshare:
     
     def resetCounter(self):
         self.bikeSum=0
-        self.lastbike=0
         self.undocked=0
         self.docked=0
         self.empty=0
