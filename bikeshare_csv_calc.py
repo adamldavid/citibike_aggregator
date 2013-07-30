@@ -74,7 +74,7 @@ def main():
 
     interval=[.5,1,3,8,12,24,72,168]
     if len(arg)==1:
-        station_list=["Dean-St-&-4-Ave","Atlantic-Ave-&-Fort-Greene-Pl"]   ##### Station names at bottom of document
+        station_list=["Lafayette-St-&-Jersey-St"]   ##### Station names at bottom of document
         for station in station_list:
             dirname =os.path.dirname(sys.argv[0])
             new_dir=dirname+"\\"+station+"\\"
@@ -102,18 +102,33 @@ def main():
                  " files created.\nProgram Completed.\nPress <ENTER> to exit>>")
 
      
-def createBikeCSV(station):
-    startDate, startTime = "20130615","0:00"
-    endDate, endTime = "20130726","0:00"
-    url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
+def createBikeCSV(file_input, startDate="20130615",  endDate="20130726",\
+                  startTime="0:00", endTime="23:59"):
+##    startDate, startTime = "20130615","0:00"
+##    endDate, endTime = "20130726","0:00"
+    ##### file_input = "dir+file*station" ####
+    dirfilestation=file_input.split("*")
+    if len(dirfilestation)>2:
+        print "Error! Too many '*' in file input argument"
+        return None
     
+    station=dirfilestation[-1]
+    station_dir=dirfilestation[0].split("+")[0]
+    fileName=dirfilestation[0].split("+")[-1]
+    fileName=fileName.split(".csv")[0]+".csv"  #ensure that filename ends in '.csv'
+    
+    url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
+
     dirname =os.path.dirname(sys.argv[0])
-    directory = dirname+"\\"+station+"\\"
+    directory = dirname+"\\"+station_dir+"\\"
+    directory = dirname+"\\"location[0]+"\\"
+
+
     if not os.path.exists(directory):
-        os.makedirs(directory)
+            os.makedirs(directory)
 
     CSVfile=directory+station+".csv"
-    print "Downloading ", station+".csv... \nThis may take a few minutes."
+    print "Downloading data from station ", station+".csv... \nThis may take a few minutes."
     urllib.urlretrieve (url, CSVfile)
     #downloadFile(url, CSVfile)
     print "Done downloading!\n"
@@ -126,6 +141,11 @@ def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
            startDate+"&until="+endTime+"_"+endDate+"&format=csv"
     return url
 
+def downloadStationList (stationList):
+    stationList=["downtown+fulton_area*Cliff-St-&-Fulton-St"]
+    for station in stationList:
+        csv=createBikeCSV(station)
+    
 
 def downloadFile(url,file_name):
     #file_name = url.split('/')[-1]
