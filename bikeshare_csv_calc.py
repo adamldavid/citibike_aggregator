@@ -74,7 +74,7 @@ def main():
 
     interval=[.5,1,3,8,12,24,72,168]
     if len(arg)==1:
-        station_list=["Broadway-&-E-14-St"]   ##### Station names at bottom of document
+        station_list=["Dean-St-&-4-Ave","Atlantic-Ave-&-Fort-Greene-Pl"]   ##### Station names at bottom of document
         for station in station_list:
             dirname =os.path.dirname(sys.argv[0])
             new_dir=dirname+"\\"+station+"\\"
@@ -103,7 +103,6 @@ def main():
 
      
 def createBikeCSV(station):
-    
     startDate, startTime = "20130615","0:00"
     endDate, endTime = "20130726","0:00"
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
@@ -127,8 +126,8 @@ def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
            startDate+"&until="+endTime+"_"+endDate+"&format=csv"
     return url
 
+
 def downloadFile(url,file_name):
-    
     #file_name = url.split('/')[-1]
     u = urllib2.urlopen(url)
     f = open(file_name, 'wb')
@@ -202,14 +201,12 @@ def ReadBikeCount(csv, hours):
     outfile.writelines(header)
 
     time_interval=hours*60 #time interval in minutes
-    time_count, timestart=0,None
-    print "Station: "+bikeStation.getName()+"   Time Interval: "+str(hours)+" hours...",
+    time_count, timestart = 0, None
+    print "Station: "+bikeStation.getName()+"   Time Interval: "+\
+          str(hours)+" hours...",
     for i in bikecsv:
         record=i.split(",")
         timeend=record[1]
-        #name=record[0].replace(".available_bikes","")
-        #bikeStation.setName(name)
-                            
         try:
             bikes= float(record[2])
         except:
@@ -231,8 +228,7 @@ def ReadBikeCount(csv, hours):
 
     outfile.close()
     print " completed!"
-    if len(sys.argv) >1:
-        i=input("Press enter to exit...")
+
 
    
 main()
