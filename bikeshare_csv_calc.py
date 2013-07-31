@@ -200,10 +200,6 @@ def ReadBikeCount(csv, hours):
     name=bikecsv[0].split(",")[0].replace(".available_bikes","")
     bikeStation=bikeshare(name, DockSize)
 
-## dirname,filename = os.path.split(os.path.abspath(csv))
-## directory = dirname+"\\"+filename.replace(".csv","")+"\\"
-## if not os.path.exists(directory):
-## os.makedirs(directory)
     directory,filename = os.path.split(os.path.abspath(csv))
     outfile=open(directory+"\\"+str(hours)+ "hourAvg_"+filename,"w")
 
