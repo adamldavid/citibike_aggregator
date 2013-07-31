@@ -73,7 +73,7 @@ def main():
 
     interval=[.5,1,3,8,12,24,72,168]
     if len(arg)==1:
-        station_list=["Lafayette-St-&-Jersey-St"]   ##### Station names at bottom of document
+        station_list=["Lafayette-St-&-Jersey-St", "Pike-St-&-E-Broadway" ] ##### Station names at bottom of document
         for station in station_list:
             dirname =os.path.dirname(sys.argv[0])
             new_dir=dirname+"\\"+station+"\\"
@@ -85,7 +85,7 @@ def main():
                 print "File '"+station+".csv' found in:\n " +new_dir+"\n"
             for hour in interval:
                 ReadBikeCount(csv, float(hour))
-            print "\n" +str(len(interval))+" files now available in:\n "+new_dir+"\n" 
+            print "\n" +str(len(interval))+" files now available in:\n "+new_dir+"\n"
     elif len(arg)>1:
         try:
             print arg, len(arg)
@@ -101,36 +101,28 @@ def main():
                  " files created.\nProgram Completed.\nPress <ENTER> to exit>>")
 
      
-def createBikeCSV(file_input, startDate="20130615",  endDate="20130726",\
+def createBikeCSV(file_input, startDate="20130615", endDate="20130726",\
                   startTime="0:00", endTime="23:59"):
-##    startDate, startTime = "20130615","0:00"
-##    endDate, endTime = "20130726","0:00"
-    ##### file_input = "dir+file*station" ####
-    dirfilestation=file_input.split("*")
-    if len(dirfilestation)>2:
-        print "Error! Too many '*' in file input argument"
-        return None
-    
+    dirfilestation=file_input.split(",")
+    station_dir=dirfilestation[0]
     station=dirfilestation[-1]
-    station_dir=dirfilestation[0].split("+")[0]
-    fileName=dirfilestation[0].split("+")[-1]
-    fileName=fileName.split(".csv")[0]+".csv"  #ensure that filename ends in '.csv'
-    
+    fileName=station+".csv"
+        
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
 
     dirname =os.path.dirname(sys.argv[0])
     directory = dirname+"\\"+station_dir+"\\"
-    directory = dirname+"\\"location[0]+"\\"
 
-
-    if not os.path.exists(directory):
+    CSVfile=directory+fileName
+    if os.path.isfile(CSVfile) is False:
+        if not os.path.exists(directory):
             os.makedirs(directory)
-
-    CSVfile=directory+station+".csv"
-    print "Downloading data from station ", station+".csv... \nThis may take a few minutes."
-    urllib.urlretrieve (url, CSVfile)
-    #downloadFile(url, CSVfile)
-    print "Done downloading!\n"
+        print "Downloading data from station", station+"... \nThis may take a few minutes."
+        urllib.urlretrieve (url, CSVfile)
+        #downloadFile(url, CSVfile)
+        print "Done downloading!\n"
+    else:
+        print "\nFile already exists:\n", CSVfile,"\n"
     return CSVfile
     
 def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
@@ -141,9 +133,10 @@ def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
     return url
 
 def downloadStationList (stationList):
-    stationList=["downtown+fulton_area*Cliff-St-&-Fulton-St"]
+    stationList=["downtown_fulton_area, Cliff-St-&-Fulton-St","downtown,Cleveland-Pl-&-Spring-St"]
     for station in stationList:
         csv=createBikeCSV(station)
+        ReadBikeCount(csv,3)
     
 
 def downloadFile(url,file_name):
@@ -166,16 +159,15 @@ def downloadFile(url,file_name):
 
         file_size_dl += len(buffer)
         f.write(buffer)
-        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
+        status = r"%10d [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
         status = status + chr(8)*(len(status)+1)
         print status,
 
     f.close()
 
-
       
 def openFileAsReadLines(filename=""):
-    # if no file is given, ask user    
+    # if no file is given, ask user
     if filename=="":
         filename=raw_input("Enter the source file name>")
 
@@ -204,14 +196,14 @@ def FindDockSize (dockData=None):
  
 def ReadBikeCount(csv, hours):
     bikecsv=openFileAsReadLines(csv)
-
     DockSize=FindDockSize(bikecsv)
-    bikeStation=bikeshare(csv.split("\\")[-1].replace(".csv",""), DockSize)
+    name=bikecsv[0].split(",")[0].replace(".available_bikes","")
+    bikeStation=bikeshare(name, DockSize)
 
-##    dirname,filename = os.path.split(os.path.abspath(csv))
-##    directory = dirname+"\\"+filename.replace(".csv","")+"\\"
-##    if not os.path.exists(directory):
-##        os.makedirs(directory)
+## dirname,filename = os.path.split(os.path.abspath(csv))
+## directory = dirname+"\\"+filename.replace(".csv","")+"\\"
+## if not os.path.exists(directory):
+## os.makedirs(directory)
     directory,filename = os.path.split(os.path.abspath(csv))
     outfile=open(directory+"\\"+str(hours)+ "hourAvg_"+filename,"w")
 
@@ -248,9 +240,11 @@ def ReadBikeCount(csv, hours):
     outfile.close()
     print " completed!"
 
-
    
 main()
+
+###downloadStationList("x")
+
 
 
 ############# Copy from below without "##"
