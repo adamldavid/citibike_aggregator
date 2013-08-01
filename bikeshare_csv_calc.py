@@ -1,7 +1,7 @@
 #bikeshare_csv_calc.py
 #Change station names on line 77
 
-import sys, os, string, urllib, urllib2
+import sys, os, string, urllib, urllib2, datetime
 
 class bikeshare:
     #DockSize=0
@@ -73,7 +73,7 @@ def main():
 
     interval=[.5,1,3,8,12,24,72,168]
     if len(arg)==1:
-        station_list=["Lafayette-St-&-Jersey-St", "Pike-St-&-E-Broadway" ] ##### Station names at bottom of document
+        station_list=["W-26-St-&-8-Ave", "Pike-St-&-E-Broadway" ] ##### Station names at bottom of document
         for station in station_list:
             dirname =os.path.dirname(sys.argv[0])
             new_dir=dirname+"\\"+station+"\\"
@@ -101,14 +101,24 @@ def main():
                  " files created.\nProgram Completed.\nPress <ENTER> to exit>>")
 
      
-def createBikeCSV(file_input, startDate="20130615", endDate="20130726",\
-                  startTime="0:00", endTime="23:59"):
+def createBikeCSV(file_input, startDate="20130615", endDate=None,\
+                  startTime="0:00", endTime=None):
+    now = datetime.datetime.now()
+    if endDate==None:
+        endDate="%04d%02d%02d" % (now.year,now.month,now.day)
+    if endTime==None:
+        #endTime = "%02d:%02d" % (now.hour,now.minute)
+        endTime = "%02d:00" % (now.hour)
+        
     dirfilestation=file_input.split(",")
     station_dir=dirfilestation[0]
     station=dirfilestation[-1]
     fileName=station+".csv"
+    print (station_dir+", "+ station+", "+ fileName)
         
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
+    x=raw_input(url)
+    return "done"
 
     dirname =os.path.dirname(sys.argv[0])
     directory = dirname+"\\"+station_dir+"\\"
@@ -209,7 +219,7 @@ def ReadBikeCount(csv, hours):
 
     time_interval=hours*60 #time interval in minutes
     time_count, timestart = 0, None
-    print "Station: "+bikeStation.getName()+"   Time Interval: "+\
+    print "Station: "+bikeStation.getName()+" Time Interval: "+\
           str(hours)+" hours...",
     for i in bikecsv:
         record=i.split(",")
@@ -236,8 +246,15 @@ def ReadBikeCount(csv, hours):
     outfile.close()
     print " completed!"
 
-   
-main()
+def getRawCSVFiles (directory):
+    f = openFileAsReadLines("stations.info")
+    for station in f:
+        station=station.replace("\n","")
+        b = createBikeCSV(directory+","+station)
+    
+
+getRawCSVFiles("All_stations")   
+#main()
 
 ###downloadStationList("x")
 
