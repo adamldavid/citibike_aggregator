@@ -117,8 +117,6 @@ def createBikeCSV(file_input, startDate="20130615", endDate=None,\
     print (station_dir+", "+ station+", "+ fileName)
         
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
-    x=raw_input(url)
-    return "done"
 
     dirname =os.path.dirname(sys.argv[0])
     directory = dirname+"\\"+station_dir+"\\"
@@ -253,8 +251,8 @@ def getRawCSVFiles (directory):
         b = createBikeCSV(directory+","+station)
     
 
-getRawCSVFiles("All_stations")   
-#main()
+#getRawCSVFiles("All_stations")   
+main()
 
 ###downloadStationList("x")
 
