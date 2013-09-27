@@ -1,26 +1,29 @@
 #bikeshare_csv_calc.py
 #Change station names on line 77
 
-import sys, os, string, urllib, urllib2
+import sys, os, glob, string, urllib, urllib2, datetime
 
+
+#bikeshare object - used to hold values of bikeshare docks and calculate changes in bike counts
 class bikeshare:
     #DockSize=0
     def __init__(self,name="Unnamed",Docks=0):
         self.bikeSum, self.lastbike,self.OpenDocks,self.undocked, \
                 self.docked, self.empty, self.full, self.bikeAvg, \
-                self.counter = (0,)*9
+                self.minutes = (0,)*9
         self.DockSize=Docks
         self.name=name
 
     def updateCounter(self, bikes=0):
-        self.counter +=1
+        #Call this method whenever the count changes
+        self.minutes +=1
         self.bikeSum += float(bikes)
         self.OpenDocks=self.DockSize-bikes
 
         bike_change = bikes- self.lastbike
-        if self.lastbike > bikes:
+        if bike_change < 0:
             self.undocked +=bike_change
-        elif self.lastbike< bikes:
+        elif bike_change > 0:
             self.docked +=bike_change
         
         if bikes<=3:
@@ -28,7 +31,7 @@ class bikeshare:
         elif bikes >= self.DockSize-1:
             self.full +=1
             
-        self.bikeAvg=float(self.bikeSum/self.counter)
+        self.bikeAvg=float(self.bikeSum/self.minutes)
        
         self.lastbike = bikes
         return self.bikeAvg
@@ -51,17 +54,18 @@ class bikeshare:
         return self.empty
     def minFull(self):
         return self.full
-    def getCounter (self):
-        return self.counter
+    def getMinutes (self):
+        return self.minutes
     
     def resetCounter(self):
+        #reset counter when entering a new interval
         self.bikeSum=0
         self.undocked=0
         self.docked=0
         self.empty=0
         self.full=0
         self.bikeAvg=0
-        self.counter=0
+        self.minutes=0
         self.OpenDocks=0
         
     def getStats(self):
@@ -71,16 +75,26 @@ class bikeshare:
 def main():
     arg=sys.argv
 
-    interval=[1,8,12,24]
-    if len(arg)==1:
-        station="Cleveland-Pl-&-Spring-St"   ##### Station names at bottom of document
-        dirname =os.path.dirname(sys.argv[0])
-        csv = dirname+"\\"+station+"\\"+station+".csv"
-        if os.path.isfile(csv) is False:
-            csv=createBikeCSV(station)
-        for hour in interval:
-            ReadBikeCount(csv, float(hour))
-        
+    interval=[.5,1,3,8,12,24,72,168] # time intervals in hours to aggregate
+    if len(arg)==1: #if no command line file info
+        station_list=["Pike-St-&-E-Broadway" ] ##### Station names at bottom of document
+        for station in station_list:
+            dirname =os.path.dirname(sys.argv[0])
+            new_dir=dirname+"\\"+station+"\\"
+            csv = new_dir+station+".csv"  #places new file in directory named after stations
+            print "-"*75
+            if os.path.isfile(csv) is False:  #if file does not exist
+                csv=createBikeCSV(station)
+            else:
+                print "File '"+station+".csv' found in:\n " +new_dir+"\n"
+            for hour in interval:
+                print "Station: "+station+" Time Interval: "+\
+                  str(hour)+" hours...",
+                time_interval, bikeStation, bikecsv, new_file = \
+                               ReadBikeCount(csv, float(hour),"\\",False)
+                writeBikeCount(time_interval, bikeStation, bikecsv, new_file)
+                print " completed!"
+            print "\n" +str(len(interval))+" files now available in:\n "+new_dir+"\n"
     elif len(arg)>1:
         try:
             print arg, len(arg)
@@ -91,24 +105,39 @@ def main():
 
         except:
             print "Error in argument %n." %(arg[1])
-
+            
+    x=raw_input ("\n"+ str(len(interval)*len(station_list))+\
+                 " files created.\nProgram Completed.\nPress <ENTER> to exit>>")
      
-def createBikeCSV(station):
-    
-    startDate, startTime = "20130615","0:00"
-    endDate, endTime = "20130716","0:00"
+def createBikeCSV(file_input, startDate="20130615", endDate=None,\
+                  startTime="0:00", endTime=None):
+    now = datetime.datetime.now()
+    if endDate==None:
+        endDate="%04d%02d%02d" % (now.year,now.month,now.day)
+    if endTime==None:
+        #endTime = "%02d:%02d" % (now.hour,now.minute)
+        endTime = "%02d:00" % (now.hour)
+        
+    dirfilestation=file_input.split(",")
+    station_dir=dirfilestation[0]
+    station=dirfilestation[-1]
+    fileName=station+".csv"
+            
     url=buildCitibikesURL(station, startDate, startTime, endDate, endTime)
-    
-    dirname =os.path.dirname(sys.argv[0])
-    directory = dirname+"\\"+station+"\\"
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
-    CSVfile=directory+station+".csv"
-    print "Downloading ", station+".csv... \nThis may take a few minutes."
-    urllib.urlretrieve (url, CSVfile)
-    #downloadFile(url, CSVfile)
-    print "Done downloading!"
+    dirname =os.path.dirname(sys.argv[0])
+    directory = dirname+"\\"+station_dir+"\\"
+
+    CSVfile=directory+fileName
+    if os.path.isfile(CSVfile) is False:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        print "Downloading data from station", station+"... \nThis may take a few minutes."
+        urllib.urlretrieve (url, CSVfile)
+        #downloadFile(url, CSVfile)
+        print "Done downloading!\n"
+    else:
+        print "\nFile already exists:\n", CSVfile,"\n"
     return CSVfile
     
 def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
@@ -117,35 +146,9 @@ def buildCitibikesURL(station,startDate,startTime,endDate,endTime):
     url = url+station.replace("&",r"%26")+".available_bikes&from="+startTime+"_"+\
            startDate+"&until="+endTime+"_"+endDate+"&format=csv"
     return url
-
-def downloadFile(url,file_name):
     
-    #file_name = url.split('/')[-1]
-    u = urllib2.urlopen(url)
-    f = open(file_name, 'wb')
-    meta = u.info()
-    file_size = int(meta.getheaders("Content-Length")[0])
-    print "Downloading: %s Bytes: %s" % (file_name, file_size)
-
-    file_size_dl = 0
-    block_sz = 8192
-    while True:
-        buffer = u.read(block_sz)
-        if not buffer:
-            break
-
-        file_size_dl += len(buffer)
-        f.write(buffer)
-        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
-        status = status + chr(8)*(len(status)+1)
-        print status,
-
-    f.close()
-
-
-      
 def openFileAsReadLines(filename=""):
-    # if no file is given, ask user    
+    # if no file is given, ask user
     if filename=="":
         filename=raw_input("Enter the source file name>")
 
@@ -158,7 +161,7 @@ def openFileAsReadLines(filename=""):
     return fileAsLines
 
 def FindDockSize (dockData=None):
-    DockSize=0
+    docks, DockSize = 0, 0
     if dockData is not None:
         for x in dockData:
             record=x.split(",")
@@ -172,37 +175,51 @@ def FindDockSize (dockData=None):
     return DockSize
         
  
-def ReadBikeCount(csv, hours):
-    bikecsv=openFileAsReadLines(csv)
-
-    DockSize=FindDockSize(bikecsv)
-    bikeStation=bikeshare(csv.replace(".csv",""), DockSize)
-
-##    dirname,filename = os.path.split(os.path.abspath(csv))
-##    directory = dirname+"\\"+filename.replace(".csv","")+"\\"
-##    if not os.path.exists(directory):
-##        os.makedirs(directory)
+def ReadBikeCount(csv, hours, sub_dir="\\", skip_existing=True):
+    #checks if the file exists, creates directories if necessary, opens file for aggregation
+    if sub_dir[-1]!="\\":
+        sub_dir ="\\"+sub_dir+"\\"
+        
     directory,filename = os.path.split(os.path.abspath(csv))
-    outfile=open(directory+"\\"+str(hours)+ "hourAvg_"+filename,"w")
+    new_file=directory+sub_dir+str(hours)+ "hourAvg_"+filename
+    if os.path.isfile(new_file) is skip_existing:
+        #determines if it will recalc existing files
+        return (-1,)*4
+    if not os.path.exists(directory+sub_dir):
+            os.makedirs(directory+sub_dir)    
 
-    header="Station,Start Date & Time,End Date & Time,Avg. Available Bikes,"+\
-            "Undocked, Docked, Minutes Empty, Minutes Full, %d Docks \n" %(DockSize)
-    outfile.writelines(header)
+    bikecsv=openFileAsReadLines(csv)
+    DockSize=FindDockSize(bikecsv)
+    name=bikecsv[0].split(",")[0].replace(".available_bikes","") #first column has station name
+    bikeStation=bikeshare(name, DockSize) #create bikeshare object
 
     time_interval=hours*60 #time interval in minutes
-    time_count, timestart=0,None
-    for i in bikecsv:
+
+    return time_interval, bikeStation, bikecsv, new_file
+    #      duration in min, bike object, file data, new file name
+    
+def writeBikeCount (time_interval, bikeStation, infileCSV, outfile_name, header=" "):
+    #calclates and writes aggregate file
+    if time_interval< 1:
+        return False #error checking; time interval must be one minute minimum
+    outfile=open(outfile_name,"w")
+    if header== " ":
+        header="%d Docks,Start Date & Time,End Date & Time,Avg. Available Bikes,"+\
+        "Undocked, Docked, Minutes Empty, Minutes Full \n" %(bikeStation.getDockSize())
+    outfile.writelines(header)
+    
+    bikes, time_count, timestart = 0, 0, None #set initial FOR loop variables
+    for i in infileCSV:
+        #input file has the format "station name, time, value"
+        #                               [0]     , [1] , [2]
         record=i.split(",")
         timeend=record[1]
-        name=record[0].replace(".available_bikes","")
-        bikeStation.setName(name)
-                            
         try:
             bikes= float(record[2])
         except:
             None
           
-        if bikeStation.getCounter()+1==time_interval:
+        if bikeStation.getMinutes()+1==time_interval:
             bikeStation.updateCounter(bikes)
             name, bikeavg, undocked, docked, empty, full = bikeStation.getStats()
             output = name+","+str(timestart)+","+str(timeend)+","+str(bikeavg)\
@@ -215,14 +232,46 @@ def ReadBikeCount(csv, hours):
             if timestart==None:
                 timestart=timeend
             bikeStation.updateCounter(bikes)
-
     outfile.close()
-    print "Station: "+name+"   Time Interval: "+str(hours)+" hours... completed!"
-    if len(sys.argv) >1:
-        i=input("Press enter to exit...")
+    return True
+                
+def dnCitiBikeList (directory, station_list="stations.info"):
+    #downloads files in a list
+    f = openFileAsReadLines(station_list)
+    for line in f:
+        line=line.strip()
+        station=line.replace("\n","")
+        if not station.startswith("#") and len(station)>3:
+            print station
+            csv = createBikeCSV(directory+","+station,"20130628","20130831","23:00","23:00")
+            interval = [.25,1,3,8,12,24,168]
+            for hour in interval:
+                print "Station: "+station+" Time Interval: "+\
+                  str(hour)+" hours...",
+                time_interval, bikeStation, bikecsv, new_file = \
+                           ReadBikeCount(csv, float(hour),str(hour)+"_hour")
+                writeBikeCount(time_interval, bikeStation, bikecsv, new_file)
+                print " completed!"
 
-   
-main()
+
+def updateCSV(sub_dir="\\"):
+    if sub_dir[-1]!="\\":
+        sub_dir ="\\"+sub_dir+"\\"
+    directory =os.path.dirname(sys.argv[0])+sub_dir
+
+    filelist=glob.glob(directory+"*.csv")
+    for i in filelist:
+        print i
+    print directory
+        
+    
+#updateCSV("/All_stations/")
+#dnCitiBikeList("All_stations")
+dnCitiBikeList("Study_stations2","study_sites.info")
+#main()
+
+###downloadStationList("x")
+
 
 
 ############# Copy from below without "##"
@@ -569,4 +618,4 @@ main()
 ##Wythe-Ave-&-Metropolitan-Ave
 ##York-St-&-Jay-St
 ##DeKalb-Ave-&-S-Portland-Ave
-
+##
