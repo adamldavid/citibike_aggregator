@@ -264,6 +264,18 @@ def updateCSV(sub_dir="\\"):
     for i in filelist:
         print i
     print directory
+
+def aggregateDocks(station_list):
+    f = openFileAsReadLines(station_list)  #open station list file
+    for line in f:  #go throught each line
+        line=line.strip()
+        station=line.replace("\n","")
+        if not station.startswith("#") and len(station)>3: #read file names
+            csv=openFileAsReadLines(line)   #open referenced file
+            for i in csv:
+                dictAvg={i[1]:i[2],count +-1:   #time:value, count
+
+
         
     
 #updateCSV("/All_stations/")
