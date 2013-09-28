@@ -81,7 +81,7 @@ def main():
         station_list=["Pike-St-&-E-Broadway" ] ##### Station names at bottom of document
         for station in station_list:
             dirname =os.path.dirname(sys.argv[0])
-            new_dir=dirname+"\\"+station+"\\"
+            new_dir=dirname+"\\output\\"+station+"\\"
             csv = new_dir+station+".csv"  #places new file in directory named after stations
             print "-"*75
             if os.path.isfile(csv) is False:  #if file does not exist
@@ -268,8 +268,8 @@ def updateCSV(sub_dir="\\"):
     
 #updateCSV("/All_stations/")
 #dnCitiBikeList("All_stations")
-dnCitiBikeList("Study_stations2","study_sites.info")
-#main()
+#dnCitiBikeList("Study_stations2","study_sites.info")
+main()
 
 ###downloadStationList("x")
 
