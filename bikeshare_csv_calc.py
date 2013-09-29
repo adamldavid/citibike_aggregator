@@ -2,7 +2,7 @@
 #bikeshare_csv_calc.py
 #Change station names on line 77
 
-import sys, os, glob, string, urllib, urllib2, datetime
+import sys, os, glob, string, urllib, urllib2, datetime, decimal
 
 
 #bikeshare object - used to hold values of bikeshare docks and calculate changes in bike counts
@@ -199,15 +199,19 @@ def ReadBikeCount(csv, hours, sub_dir="\\", skip_existing=True):
     return time_interval, bikeStation, bikecsv, new_file
     #      duration in min, bike object, file data, new file name
     
-def writeBikeCount (time_interval, bikeStation, infileCSV, outfile_name, header=" "):
+def writeBikeCount (time_interval, bikeStation, infileCSV, outfile_name, headerNote=""):
     #calclates and writes aggregate file
     if time_interval< 1:
         return False #error checking; time interval must be one minute minimum
     outfile=open(outfile_name,"w")
-    if header== " ":
+    
+    try:
         header="%d Docks,Start Date & Time,End Date & Time,Avg. Available Bikes,"+\
-        "Undocked, Docked, Minutes Empty, Minutes Full \n" %(bikeStation.getDockSize())
-    outfile.writelines(header)
+        "Undocked, Docked, Minutes Empty, Minutes Full" %(bikeStation.getDockSize())
+    except:
+        header="Station,Start Date & Time,End Date & Time,Avg. Available Bikes,"+\
+        "Undocked, Docked, Minutes Empty, Minutes Full"
+    outfile.writelines(header+","+headerNote+"\n")
     
     bikes, time_count, timestart = 0, 0, None #set initial FOR loop variables
     for i in infileCSV:
@@ -266,14 +270,46 @@ def updateCSV(sub_dir="\\"):
     print directory
 
 def aggregateDocks(station_list):
+    BikeAvgD={}
     f = openFileAsReadLines(station_list)  #open station list file
+    x=0
     for line in f:  #go throught each line
+        x=x+1
         line=line.strip()
         station=line.replace("\n","")
         if not station.startswith("#") and len(station)>3: #read file names
-            csv=openFileAsReadLines(line)   #open referenced file
-            for i in csv:
-                dictAvg={i[1]:i[2],count +-1:   #time:value, count
+            if station.startswith("name=".lower()):
+                name=station.replace("name=","")
+            else:
+                print line
+                csv=openFileAsReadLines(os.path.dirname(station_list)+"\\"+line)   #open referenced file
+                
+                lastbike=0
+                for i in csv:
+                    a=i.split(",")
+                    time = a[1]
+                    try:
+                        bikes = float(a[2].strip())
+                        lastbike=bikes
+                    except:
+                        bikes=lastbike
+                    try:
+                        bikes += BikeAvgD[time]
+                    except:
+                        pass
+                    BikeAvgD[time]=bikes   #DICTIONARY time:value, count
+    dirfile=os.path.dirname(station_list)+"\\"+name+".csv"
+    outfile=open(dirfile,"w")
+    for key in sorted(BikeAvgD.iterkeys()):
+        line = name+".available_bikes,"+key +","+ str(BikeAvgD[key])+"\n"
+        outfile.writelines(line)
+    outfile.close()
+    BikeAvgD=None
+    time_interval, bikeStation, bikecsv, new_file = \
+        ReadBikeCount(dirfile, 1)
+    writeBikeCount(time_interval, bikeStation, bikecsv, new_file)
+    print "done"
+            
 
 
         
@@ -281,7 +317,8 @@ def aggregateDocks(station_list):
 #updateCSV("/All_stations/")
 #dnCitiBikeList("All_stations")
 #dnCitiBikeList("Study_stations2","study_sites.info")
-main()
+aggregateDocks(os.path.dirname(sys.argv[0])+"\\output\\study\\all_sites.info")
+#main()
 
 ###downloadStationList("x")
 
