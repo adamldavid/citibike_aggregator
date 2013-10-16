@@ -2,7 +2,7 @@
 #bikeshare_csv_calc.py
 #Change station names on line 77
 
-import sys, os, glob, string, urllib, urllib2, datetime, decimal
+import sys, os, glob, string, urllib, urllib2, datetime, decimal, pdb
 
 
 #bikeshare object - used to hold values of bikeshare docks and calculate changes in bike counts
@@ -270,44 +270,65 @@ def updateCSV(sub_dir="\\"):
     print directory
 
 def aggregateDocks(station_list):
-    BikeAvgD={}
+    ValueDict={}
+    Col_EndTime=2
+    Col_BikeAvg=3
+    Col_Undocked=4
+    Col_Docked=5
+    Col_Empty=6
+    Col_Full=7
+    
     f = openFileAsReadLines(station_list)  #open station list file
     x=0
-    for line in f:  #go throught each line
-        x=x+1
-        line=line.strip()
+    docks=0
+    for fileline in f:  #go throught each line
+        line=fileline.strip()
         station=line.replace("\n","")
         if not station.startswith("#") and len(station)>3: #read file names
             if station.startswith("name=".lower()):
                 name=station.replace("name=","")
             elif station.endswith(".csv"):
-                print line
-                csv=openFileAsReadLines(os.path.dirname(station_list)+"\\"+line)   #open referenced file
-                lastbike=0
+                x=x+1
+                print station
+                csv=openFileAsReadLines(os.path.dirname(station_list)+"\\"+station)   #open referenced file
+                lastval=0
                 for i in csv:
                     a=i.split(",")
-                    time = a[1]
-                    try:
-                        bikes = float(a[2].strip())
-                        lastbike=bikes
-                    except:
-                        bikes=lastbike
-                    try:
-                        bikes += BikeAvgD[time]
-                    except:
-                        pass
-                    BikeAvgD[time]=bikes   #DICTIONARY time:value
+                    if i==csv[0]:
+                        docks += int(a[-1].replace("Docks \n",""))
+                        continue
+                    
+                    timeStart = a[1]
+                    timeEnd=a[2]
+                    for column in range(2,7):
+                        key=column-2
+                        if key==0:
+                            if x ==1:
+                                ValueDict[timeStart]=[0,0,0,0,0,0]
+                                ValueDict[timeStart][key]=timeEnd
+                            continue
+                        try:
+                            value = float(a[column].strip())
+                            lastval=value
+                        except:
+                            value=lastval
+                        try:
+                            #if column ==3 and x>2:
+                                #print value, ValueDict[timeStart], value+ValueDict[timeStart][key],"\n"
+                            value += ValueDict[timeStart][key]
+
+                        except:
+                            pass
+                            #print x, timeStart, key
+                        ValueDict[timeStart][key]=value   #DICTIONARY time:value
     dirfile=os.path.dirname(station_list)+"\\"+name+".csv"
     outfile=open(dirfile,"w")
-    for key in sorted(BikeAvgD.iterkeys()):
-        line = name+".available_bikes,"+key +","+ str(BikeAvgD[key])+"\n"
+    outfile.writelines(csv[0].replace("\n","")+","+str(docks)+"\n")
+    for key in sorted(ValueDict.iterkeys()):
+        line = name+","+key +","+ str(ValueDict[key])[1:-1].replace("'","")+"\n"
         outfile.writelines(line)
     outfile.close()
-    BikeAvgD=None
-    time_interval, bikeStation, bikecsv, new_file = \
-        ReadBikeCount(dirfile, 1)
-    writeBikeCount(time_interval, bikeStation, bikecsv, new_file)
-    print "done"
+    print "done with '"+name+"'"
             
 
 
@@ -316,7 +337,7 @@ def aggregateDocks(station_list):
 #updateCSV("/All_stations/")
 #dnCitiBikeList("All_stations")
 #dnCitiBikeList("Study_stations2","study_sites.info")
-aggregateDocks(os.path.dirname(sys.argv[0])+"\\output\\study\\all_sites.info")
+aggregateDocks(os.path.dirname(sys.argv[0])+"\\output\\study\\test.info")
 #main()
 
 ###downloadStationList("x")
