@@ -280,10 +280,9 @@ def aggregateDocks(station_list):
         if not station.startswith("#") and len(station)>3: #read file names
             if station.startswith("name=".lower()):
                 name=station.replace("name=","")
-            else:
+            elif station.endswith(".csv"):
                 print line
                 csv=openFileAsReadLines(os.path.dirname(station_list)+"\\"+line)   #open referenced file
-                
                 lastbike=0
                 for i in csv:
                     a=i.split(",")
@@ -297,7 +296,7 @@ def aggregateDocks(station_list):
                         bikes += BikeAvgD[time]
                     except:
                         pass
-                    BikeAvgD[time]=bikes   #DICTIONARY time:value, count
+                    BikeAvgD[time]=bikes   #DICTIONARY time:value
     dirfile=os.path.dirname(station_list)+"\\"+name+".csv"
     outfile=open(dirfile,"w")
     for key in sorted(BikeAvgD.iterkeys()):
