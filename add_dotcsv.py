@@ -1,9 +1,9 @@
 
 def main():
-    f=openFileAsReadLines("bk_stations.info")
-    outfile=open("bk_stations_csv.info","w")
+    f=openFileAsReadLines("all_stations.info")
+    outfile=open("all_stations_csv.info","w")
     for line in f:
-        s=line.strip() +".csv"+"\n"
+        s="1.0hourAvg_"+line.strip() +".csv"+"\n"
         outfile.write(s)
     outfile.close()
     print "done"

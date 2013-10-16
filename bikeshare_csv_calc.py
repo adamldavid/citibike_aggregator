@@ -300,7 +300,7 @@ def aggregateDocks(station_list):
                     
                     timeStart = a[1]
                     timeEnd=a[2]
-                    for column in range(2,7):
+                    for column in range(2,8):
                         key=column-2
                         if key==0:
                             if x ==1:
@@ -320,7 +320,10 @@ def aggregateDocks(station_list):
                         except:
                             pass
                             #print x, timeStart, key
-                        ValueDict[timeStart][key]=value   #DICTIONARY time:value
+                        try:
+                            ValueDict[timeStart][key]=value   #DICTIONARY time:value
+                        except:
+                            pass
     dirfile=os.path.dirname(station_list)+"\\"+name+".csv"
     outfile=open(dirfile,"w")
     outfile.writelines(csv[0].replace("\n","")+","+str(docks)+"\n")
@@ -337,7 +340,7 @@ def aggregateDocks(station_list):
 #updateCSV("/All_stations/")
 #dnCitiBikeList("All_stations")
 #dnCitiBikeList("Study_stations2","study_sites.info")
-aggregateDocks(os.path.dirname(sys.argv[0])+"\\output\\study\\test.info")
+aggregateDocks(os.path.dirname(sys.argv[0])+"\\All_stations\\1_hour\\all_stations_csv.info")
 #main()
 
 ###downloadStationList("x")
